@@ -1,5 +1,6 @@
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
+using Claims.Infrastructure.Services.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -16,10 +17,13 @@ namespace Claims.Controllers
         private readonly ILogger<ClaimsController> _logger;
         private readonly IInsuranceRepository claimsRepository;
 
-        public ClaimsController(ILogger<ClaimsController> logger, IInsuranceRepository claimsRepository)
+        private readonly IValidationService validationService;
+
+        public ClaimsController(ILogger<ClaimsController> logger, IInsuranceRepository claimsRepository, IValidationService validationService)
         {
             _logger = logger;
             this.claimsRepository = claimsRepository;
+            this.validationService = validationService;
         }
 
         // GET: api/claims
@@ -43,8 +47,15 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating claim.")]
         public async Task<ActionResult<int>> CreateAsync(Claim claim)
         {
-            await claimsRepository.AddClaimAsync(claim);
-            return Ok(claim.Id);
+            if (await validationService.ValidateClaim(claim))
+            {
+                await claimsRepository.AddClaimAsync(claim);
+                return Ok(claim.Id);
+            }
+            else
+            {
+                return BadRequest("Invalid claim data.");
+            }
         }
 
         // DELETE: api/claims/{id}

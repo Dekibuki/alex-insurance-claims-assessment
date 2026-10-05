@@ -2,6 +2,7 @@ using Claims.Domain.Enums;
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
 using Claims.Infrastructure.Services.Audit;
+using Claims.Infrastructure.Services.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Swashbuckle.AspNetCore.Annotations;
@@ -18,13 +19,15 @@ namespace Claims.Controllers
     {
         private readonly IInsuranceRepository insuranceRepository;
         private readonly ILogger<CoversController> _logger;
-        private readonly IAuditService auditer;
+        private readonly IAuditService auditService;
+        private readonly IValidationService validationService;
 
-        public CoversController(IInsuranceRepository claimsRepository, IAuditService auditer, ILogger<CoversController> logger)
+        public CoversController(IInsuranceRepository claimsRepository, IAuditService auditer, ILogger<CoversController> logger, IValidationService validationService)
         {
             this.insuranceRepository = claimsRepository;
             _logger = logger;
-            this.auditer = auditer;
+            this.auditService = auditer;
+            this.validationService = validationService;
         }
 
         // POST: api/covers/compute
@@ -36,7 +39,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while computing premium.")]
         public async Task<ActionResult> ComputePremiumAsync(DateTime startDate, DateTime endDate, CoverType coverType)
         {
-            return Ok(ComputePremium(startDate, endDate, coverType));
+            return Ok(auditService.ComputePremium(startDate, endDate, coverType));
         }
 
         // GET: api/covers
@@ -78,11 +81,18 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating cover.")]
         public async Task<ActionResult<int>> CreateAsync(Cover cover)
         {
-            cover.Premium = ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
+            if (validationService.ValidateCover(cover))
+            {
+                cover.Premium = auditService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
 
-            await insuranceRepository.AddCoverAsync(cover);
-            await auditer.AuditCover(cover.Id, "POST");
-            return Ok(cover.Id);
+                await insuranceRepository.AddCoverAsync(cover);
+                await auditService.AuditCover(cover.Id, "POST");
+                return Ok(cover.Id);
+            }
+            else
+            {
+                return BadRequest("Invalid cover data.");
+            }
         }
 
         // DELETE: api/covers/{id}
@@ -94,43 +104,9 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
         public async Task<ActionResult> DeleteAsync(int id)
         {
-            await auditer.AuditCover(id, "DELETE");
+            await auditService.AuditCover(id, "DELETE");
             await insuranceRepository.DeleteCoverByIdAsync(id);
             return Ok();
-        }
-
-        private decimal ComputePremium(DateTime startDate, DateTime endDate, CoverType coverType)
-        {
-            var multiplier = 1.3m;
-            if (coverType == CoverType.Yacht)
-            {
-                multiplier = 1.1m;
-            }
-
-            if (coverType == CoverType.PassengerShip)
-            {
-                multiplier = 1.2m;
-            }
-
-            if (coverType == CoverType.Tanker)
-            {
-                multiplier = 1.5m;
-            }
-
-            var premiumPerDay = 1250 * multiplier;
-            var insuranceLength = (endDate - startDate).TotalDays;
-            var totalPremium = 0m;
-
-            for (var i = 0; i < insuranceLength; i++)
-            {
-                if (i < 30) totalPremium += premiumPerDay;
-                if (i < 180 && coverType == CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.05m;
-                else if (i < 180) totalPremium += premiumPerDay - premiumPerDay * 0.02m;
-                if (i < 365 && coverType != CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.03m;
-                else if (i < 365) totalPremium += premiumPerDay - premiumPerDay * 0.08m;
-            }
-
-            return totalPremium;
         }
     }
 }

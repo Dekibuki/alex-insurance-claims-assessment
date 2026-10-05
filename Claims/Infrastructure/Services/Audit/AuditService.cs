@@ -11,6 +11,18 @@ namespace Claims.Infrastructure.Services.Audit
     {
         private readonly IAuditRepository auditRepository;
 
+        private const decimal DefaultMultiplier = 1.3m;
+        private const decimal YachtMultiplier = 1.1m;
+        private const decimal PassengerShipMultiplier = 1.2m;
+        private const decimal TankerMultiplier = 1.5m;
+
+        private const int StartingPremium = 1250;
+
+        private const int FirstPeriodDays = 30;
+        private const int SecondPeriodDays = 180;
+        private const int ThirdPeriodDays = 365;
+
+
         public AuditService(IAuditRepository auditRepository)
         {
             this.auditRepository = auditRepository;
@@ -42,30 +54,24 @@ namespace Claims.Infrastructure.Services.Audit
 
         public decimal ComputePremium(DateTime startDate, DateTime endDate, CoverType coverType)
         {
-            decimal multiplier = 1.3m;
-
-            decimal yachtMultiplier = 1.1m;
-            decimal passengerShipMultiplier = 1.2m;
-            decimal tankerMultiplier = 1.5m;
-
-            int startingPremium = 1250;
+            decimal multiplier = DefaultMultiplier;
 
             if (coverType == CoverType.Yacht)
             {
-                multiplier = yachtMultiplier;
+                multiplier = YachtMultiplier;
             }
 
             if (coverType == CoverType.PassengerShip)
             {
-                multiplier = passengerShipMultiplier;
+                multiplier = PassengerShipMultiplier;
             }
 
             if (coverType == CoverType.Tanker)
             {
-                multiplier = tankerMultiplier;
+                multiplier = TankerMultiplier;
             }
 
-            decimal premiumPerDay = startingPremium * multiplier;
+            decimal premiumPerDay = StartingPremium * multiplier;
             double insuranceLength = (endDate - startDate).TotalDays;
             decimal totalPremium = CalculatePremiumFromInsuranceLength(insuranceLength, premiumPerDay, coverType);
 
@@ -77,15 +83,15 @@ namespace Claims.Infrastructure.Services.Audit
             decimal totalPremium = 0m;
             for (int i = 0; i < insuranceLength; i++)
             {
-                if (i < 30)
+                if (i < FirstPeriodDays)
                     totalPremium += premiumPerDay;
-                else if (i > 30 &&i < 180 && coverType == CoverType.Yacht)
+                else if (i > FirstPeriodDays && i < SecondPeriodDays && coverType == CoverType.Yacht)
                     totalPremium += premiumPerDay - premiumPerDay * 0.05m;
-                else if (i > 30 && i < 180)
+                else if (i > FirstPeriodDays && i < SecondPeriodDays)
                     totalPremium += premiumPerDay - premiumPerDay * 0.02m;
-                else if (i > 180 && i < 365 && coverType != CoverType.Yacht)
+                else if (i > SecondPeriodDays && i < ThirdPeriodDays && coverType != CoverType.Yacht)
                     totalPremium += premiumPerDay - premiumPerDay * 0.03m;
-                else if (i > 180 && i < 365)
+                else if (i > SecondPeriodDays && i < ThirdPeriodDays)
                     totalPremium += premiumPerDay - premiumPerDay * 0.01m;
             }
             return totalPremium;
