@@ -48,6 +48,9 @@ public partial class Program
         builder.Services.AddScoped<IAuditService, AuditService>();
         builder.Services.AddScoped<IValidationService, ValidationService>();
 
+        builder.Services.AddSingleton<AuditQueue>();
+        builder.Services.AddHostedService<AuditWorker>();
+
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();

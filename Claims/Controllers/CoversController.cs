@@ -1,4 +1,5 @@
 using Claims.Domain.Enums;
+using Claims.Domain.Models.Audit;
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
 using Claims.Infrastructure.Services.Audit;
@@ -22,12 +23,19 @@ namespace Claims.Controllers
         private readonly IAuditService auditService;
         private readonly IValidationService validationService;
 
-        public CoversController(IInsuranceRepository claimsRepository, IAuditService auditer, ILogger<CoversController> logger, IValidationService validationService)
+        private readonly AuditQueue auditQueue;
+
+        public CoversController(
+            IInsuranceRepository claimsRepository,
+            IAuditService auditer, ILogger<CoversController> logger,
+            IValidationService validationService,
+            AuditQueue auditQueue)
         {
             this.insuranceRepository = claimsRepository;
             _logger = logger;
             this.auditService = auditer;
             this.validationService = validationService;
+            this.auditQueue = auditQueue;
         }
 
         // POST: api/covers/compute
@@ -86,7 +94,14 @@ namespace Claims.Controllers
                 cover.Premium = auditService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
 
                 await insuranceRepository.AddCoverAsync(cover);
-                await auditService.AuditCover(cover.Id, "POST");
+                await auditQueue.EnqueueAsync(new AuditMessage
+                {
+                    Type = AuditType.Cover,
+                    EntityId = cover.Id,
+                    HttpRequestType = "POST",
+                    Created = DateTime.UtcNow
+                });
+
                 return Ok(cover.Id);
             }
             else
@@ -104,7 +119,14 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
         public async Task<ActionResult> DeleteAsync(int id)
         {
-            await auditService.AuditCover(id, "DELETE");
+            await auditQueue.EnqueueAsync(new AuditMessage
+            {
+                Type = AuditType.Cover,
+                EntityId = id,
+                HttpRequestType = "DELETE",
+                Created = DateTime.UtcNow
+            });
+
             await insuranceRepository.DeleteCoverByIdAsync(id);
             return Ok();
         }
