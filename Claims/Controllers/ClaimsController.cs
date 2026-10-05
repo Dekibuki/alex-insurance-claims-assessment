@@ -1,99 +1,81 @@
-using Claims.Auditing;
+using Claims.Domain.Models.Insurance;
+using Claims.Infrastructure.Repository.Insurance;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using MongoDB.EntityFrameworkCore.Extensions;
-
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Claims.Controllers
 {
+    /// <summary>
+    /// Controller class for managing claims.
+    /// </summary>
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/claims")]
+    [Produces("application/json")]
     public class ClaimsController : ControllerBase
     {
         private readonly ILogger<ClaimsController> _logger;
-        private readonly ClaimsContext _claimsContext;
-        private readonly Auditer _auditer;
+        private readonly IInsuranceRepository claimsRepository;
 
-        public ClaimsController(ILogger<ClaimsController> logger, ClaimsContext claimsContext, AuditContext auditContext)
+        public ClaimsController(ILogger<ClaimsController> logger, IInsuranceRepository claimsRepository)
         {
             _logger = logger;
-            _claimsContext = claimsContext;
-            _auditer = new Auditer(auditContext);
+            this.claimsRepository = claimsRepository;
         }
 
+        // GET: api/claims
         [HttpGet]
-        public async Task<IEnumerable<Claim>> GetAsync()
+        [SwaggerOperation(Summary = "An API endpoint for getting a list of all claims.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "List of claims resturned successfully.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retreiving claims list.")]
+        public async Task<ActionResult<List<Claim>>> GetAsync()
         {
-            return await _claimsContext.GetClaimsAsync();
+            List<Claim> claims = await claimsRepository.GetAllClaimsAsync();
+            return Ok(claims);
         }
 
+        // POST: api/claims
         [HttpPost]
-        public async Task<ActionResult> CreateAsync(Claim claim)
+        [SwaggerOperation(Summary = "An API endpoint for creating a new claim. Takes a Claim object as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Claim created successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid claim data.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating claim.")]
+        public async Task<ActionResult<string>> CreateAsync(Claim claim)
         {
             claim.Id = Guid.NewGuid().ToString();
-            await _claimsContext.AddItemAsync(claim);
-            _auditer.AuditClaim(claim.Id, "POST");
-            return Ok(claim);
+            await claimsRepository.AddClaimAsync(claim);
+            return Ok(claim.Id);
         }
 
+        // DELETE: api/claims/{id}
         [HttpDelete("{id}")]
-        public async Task DeleteAsync(string id)
+        [SwaggerOperation(Summary = "An API endpoint for deleting a claim. Takes a Claim Id as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Claim deleted successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while deleting claim.")]
+        public async Task<ActionResult> DeleteAsync(string id)
         {
-            _auditer.AuditClaim(id, "DELETE");
-            await _claimsContext.DeleteItemAsync(id);
+            await claimsRepository.DeleteClaimByIdAsync(id);
+            return Ok();
         }
 
+        // GET: api/claims/{id}
         [HttpGet("{id}")]
-        public async Task<Claim> GetAsync(string id)
+        [SwaggerOperation(Summary = "An API endpoint for retrieving a claim. Takes a Claim Id as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Claim retrieved successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
+        public async Task<ActionResult<Claim?>> GetAsync(string id)
         {
-            return await _claimsContext.GetClaimAsync(id);
-        }
-    }
-
-    public class ClaimsContext : DbContext
-    {
-
-        private DbSet<Claim> Claims { get; init; }
-        public DbSet<Cover>  Covers { get; init; }
-
-        public ClaimsContext(DbContextOptions options)
-            : base(options)
-        {
-        }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<Claim>().ToCollection("claims");
-            modelBuilder.Entity<Cover>().ToCollection("covers");
-        }
-
-        public async Task<IEnumerable<Claim>> GetClaimsAsync()
-        {
-            return await Claims.ToListAsync();
-        }
-
-        public async Task<Claim> GetClaimAsync(string id)
-        {
-            return await Claims
-                .Where(claim => claim.Id == id)
-                .SingleOrDefaultAsync();
-        }
-
-        public async Task AddItemAsync(Claim item)
-        {
-            Claims.Add(item);
-            await SaveChangesAsync();
-        }
-
-        public async Task DeleteItemAsync(string id)
-        {
-            var claim = await GetClaimAsync(id);
-            if (claim is not null)
+            Claim? claim = await claimsRepository.GetClaimByIdAsync(id);
+            if (claim is null)
             {
-                Claims.Remove(claim);
-                await SaveChangesAsync();
+                return NotFound();
             }
+            return Ok(claim);
         }
     }
 }

@@ -1,5 +1,8 @@
-using Claims.Auditing;
 using Claims.Controllers;
+using Claims.Infrastructure.DataContext;
+using Claims.Infrastructure.Repository.Audit;
+using Claims.Infrastructure.Repository.Insurance;
+using Claims.Infrastructure.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using System.Runtime.InteropServices;
@@ -35,12 +38,16 @@ builder.Services
 builder.Services.AddDbContext<AuditContext>(options =>
     options.UseSqlServer(sqlContainer.GetConnectionString()));
 
-builder.Services.AddDbContext<ClaimsContext>(options =>
+builder.Services.AddDbContext<InsuranceContext>(options =>
 {
     var client = new MongoClient(mongoContainer.GetConnectionString());
     var database = client.GetDatabase(builder.Configuration["MongoDb:DatabaseName"]); // Use a default/test database name
     options.UseMongoDB(database.Client, database.DatabaseNamespace.DatabaseName);
 });
+
+builder.Services.AddSingleton<IInsuranceRepository, InsuranceRepository>();
+builder.Services.AddSingleton<IAuditRepository, AuditRepository>();
+builder.Services.AddSingleton<IAuditService, AuditService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

@@ -1,98 +1,137 @@
-using Claims.Auditing;
+using Claims.Domain.Enums;
+using Claims.Domain.Models.Insurance;
+using Claims.Infrastructure.Repository.Insurance;
+using Claims.Infrastructure.Services.Audit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Swashbuckle.AspNetCore.Annotations;
 
-namespace Claims.Controllers;
-
-[ApiController]
-[Route("[controller]")]
-public class CoversController : ControllerBase
+namespace Claims.Controllers
 {
-    private readonly ClaimsContext _claimsContext;
-    private readonly ILogger<CoversController> _logger;
-    private readonly Auditer _auditer;
-
-    public CoversController(ClaimsContext claimsContext, AuditContext auditContext, ILogger<CoversController> logger)
+    /// <summary>
+    /// Controller class for managing covers.
+    /// </summary>
+    [ApiController]
+    [Route("api/covers")]
+    [Produces("application/json")]
+    public class CoversController : ControllerBase
     {
-        _claimsContext = claimsContext;
-        _logger = logger;
-        _auditer = new Auditer(auditContext);
-    }
+        private readonly IInsuranceRepository insuranceRepository;
+        private readonly ILogger<CoversController> _logger;
+        private readonly IAuditService auditer;
 
-    [HttpPost("compute")]
-    public async Task<ActionResult> ComputePremiumAsync(DateTime startDate, DateTime endDate, CoverType coverType)
-    {
-        return Ok(ComputePremium(startDate, endDate, coverType));
-    }
-
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Cover>>> GetAsync()
-    {
-        var results = await _claimsContext.Covers.ToListAsync();
-        return Ok(results);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<ActionResult<Cover>> GetAsync(string id)
-    {
-        var results = await _claimsContext.Covers.ToListAsync();
-        return Ok(results.SingleOrDefault(cover => cover.Id == id));
-    }
-
-    [HttpPost]
-    public async Task<ActionResult> CreateAsync(Cover cover)
-    {
-        cover.Id = Guid.NewGuid().ToString();
-        cover.Premium = ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
-        _claimsContext.Covers.Add(cover);
-        await _claimsContext.SaveChangesAsync();
-        _auditer.AuditCover(cover.Id, "POST");
-        return Ok(cover);
-    }
-
-    [HttpDelete("{id}")]
-    public async Task DeleteAsync(string id)
-    {
-        _auditer.AuditCover(id, "DELETE");
-        var cover = await _claimsContext.Covers.Where(cover => cover.Id == id).SingleOrDefaultAsync();
-        if (cover is not null)
+        public CoversController(IInsuranceRepository claimsRepository, IAuditService auditer, ILogger<CoversController> logger)
         {
-            _claimsContext.Covers.Remove(cover);
-            await _claimsContext.SaveChangesAsync();
-        }
-    }
-
-    private decimal ComputePremium(DateTime startDate, DateTime endDate, CoverType coverType)
-    {
-        var multiplier = 1.3m;
-        if (coverType == CoverType.Yacht)
-        {
-            multiplier = 1.1m;
+            this.insuranceRepository = claimsRepository;
+            _logger = logger;
+            this.auditer = auditer;
         }
 
-        if (coverType == CoverType.PassengerShip)
+        // POST: api/covers/compute
+        [HttpPost("compute")]
+        [SwaggerOperation(Summary = "An API endpoint for computing cover premium. Takes start and end dates along with cover type as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Premium computed successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid input.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while computing premium.")]
+        public async Task<ActionResult> ComputePremiumAsync(DateTime startDate, DateTime endDate, CoverType coverType)
         {
-            multiplier = 1.2m;
+            return Ok(ComputePremium(startDate, endDate, coverType));
         }
 
-        if (coverType == CoverType.Tanker)
+        // GET: api/covers
+        [HttpGet]
+        [SwaggerOperation(Summary = "An API endpoint for retrieving all covers.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Covers retrieved successfully.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retreiving covers list.")]
+        public async Task<ActionResult<List<Cover>>> GetAsync()
         {
-            multiplier = 1.5m;
+            List<Cover> results = await insuranceRepository.GetAllCoversAsync();
+            return Ok(results);
         }
 
-        var premiumPerDay = 1250 * multiplier;
-        var insuranceLength = (endDate - startDate).TotalDays;
-        var totalPremium = 0m;
-
-        for (var i = 0; i < insuranceLength; i++)
+        // GET: api/covers/{id}
+        [HttpGet("{id}")]
+        [SwaggerOperation(Summary = "An API endpoint for retrieving a cover. Takes a Cover Id as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Cover retrieved successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving cover.")]
+        public async Task<ActionResult<Cover>> GetAsync(string id)
         {
-            if (i < 30) totalPremium += premiumPerDay;
-            if (i < 180 && coverType == CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.05m;
-            else if (i < 180) totalPremium += premiumPerDay - premiumPerDay * 0.02m;
-            if (i < 365 && coverType != CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.03m;
-            else if (i < 365) totalPremium += premiumPerDay - premiumPerDay * 0.08m;
+            Cover? result = await insuranceRepository.GetCoverByIdAsync(id);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
         }
 
-        return totalPremium;
+        // POST: api/covers
+        [HttpPost]
+        [SwaggerOperation(Summary = "An API endpoint for creating a new cover. Takes a Cover object as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Cover created successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid cover data.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating cover.")]
+        public async Task<ActionResult<string>> CreateAsync(Cover cover)
+        {
+            cover.Id = Guid.NewGuid().ToString();
+            cover.Premium = ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
+
+            await insuranceRepository.AddCoverAsync(cover);
+            await auditer.AuditCover(cover.Id, "POST");
+            return Ok(cover.Id);
+        }
+
+        // DELETE: api/covers/{id}
+        [HttpDelete("{id}")]
+        [SwaggerOperation(Summary = "An API endpoint for retrieving a claim. Takes a Claim Id as input.")]
+        [SwaggerResponse(StatusCodes.Status200OK, "Claim retrieved successfully.")]
+        [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
+        [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
+        [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
+        public async Task<ActionResult> DeleteAsync(string id)
+        {
+            await auditer.AuditCover(id, "DELETE");
+            await insuranceRepository.DeleteCoverByIdAsync(id);
+            return Ok();
+        }
+
+        private decimal ComputePremium(DateTime startDate, DateTime endDate, CoverType coverType)
+        {
+            var multiplier = 1.3m;
+            if (coverType == CoverType.Yacht)
+            {
+                multiplier = 1.1m;
+            }
+
+            if (coverType == CoverType.PassengerShip)
+            {
+                multiplier = 1.2m;
+            }
+
+            if (coverType == CoverType.Tanker)
+            {
+                multiplier = 1.5m;
+            }
+
+            var premiumPerDay = 1250 * multiplier;
+            var insuranceLength = (endDate - startDate).TotalDays;
+            var totalPremium = 0m;
+
+            for (var i = 0; i < insuranceLength; i++)
+            {
+                if (i < 30) totalPremium += premiumPerDay;
+                if (i < 180 && coverType == CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.05m;
+                else if (i < 180) totalPremium += premiumPerDay - premiumPerDay * 0.02m;
+                if (i < 365 && coverType != CoverType.Yacht) totalPremium += premiumPerDay - premiumPerDay * 0.03m;
+                else if (i < 365) totalPremium += premiumPerDay - premiumPerDay * 0.08m;
+            }
+
+            return totalPremium;
+        }
     }
 }
