@@ -45,9 +45,9 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid input.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while computing premium.")]
-        public async Task<ActionResult> ComputePremiumAsync(DateTime startDate, DateTime endDate, CoverType coverType)
+        public async Task<ActionResult<decimal>> ComputePremiumAsync([FromBody] ComputePremiumDto computePremiumDto)
         {
-            return Ok(auditService.ComputePremium(startDate, endDate, coverType));
+            return Ok(auditService.ComputePremium(computePremiumDto.StartDate, computePremiumDto.EndDate, computePremiumDto.Type));
         }
 
         // GET: api/covers
@@ -69,15 +69,15 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving cover.")]
-        public async Task<ActionResult<Cover>> GetAsync(int id)
+        public async Task<ActionResult<Cover>> GetAsync([FromRoute] int id)
         {
-            Cover? result = await insuranceRepository.GetCoverByIdAsync(id);
-            if (result is null)
+            Cover? cover = await insuranceRepository.GetCoverByIdAsync(id);
+            if (cover is null)
             {
                 return NotFound();
             }
 
-            return Ok(result);
+            return Ok(cover);
         }
 
         // POST: api/covers
@@ -87,7 +87,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid cover data.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating cover.")]
-        public async Task<ActionResult<int>> CreateAsync(Cover cover)
+        public async Task<ActionResult<int>> CreateAsync([FromBody] Cover cover)
         {
             if (validationService.ValidateCover(cover))
             {
@@ -117,7 +117,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
-        public async Task<ActionResult> DeleteAsync(int id)
+        public async Task<ActionResult> DeleteAsync([FromRoute] int id)
         {
             await auditQueue.EnqueueAsync(new AuditMessage
             {

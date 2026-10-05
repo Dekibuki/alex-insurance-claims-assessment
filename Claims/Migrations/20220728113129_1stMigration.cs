@@ -19,7 +19,7 @@ namespace Claims.Migrations
                    CoverId = table.Column<int>(type: "int", nullable: true),
                    Created = table.Column<DateTime>(type: "datetime2", nullable: false),
                    Name = table.Column<string>(type: "nvarchar(500)", nullable: false),
-                   Type = table.Column<ClaimType>(type: "tinyint", nullable: false),
+                   Type = table.Column<ClaimType>(type: "int", nullable: false),
                    DamageCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                },
                constraints: table =>
@@ -35,7 +35,7 @@ namespace Claims.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Type = table.Column<CoverType>(type: "tinyint", nullable: false),
+                    Type = table.Column<CoverType>(type: "int", nullable: false),
                     Premium = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>

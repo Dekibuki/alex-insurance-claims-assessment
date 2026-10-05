@@ -3,6 +3,9 @@ using System.Threading.Channels;
 
 namespace Claims.Infrastructure.Services.Audit
 {
+    /// <summary>
+    /// Background service that inserts audit messages.
+    /// </summary>
     public class AuditWorker : BackgroundService
     {
         private readonly AuditQueue _auditQueue;

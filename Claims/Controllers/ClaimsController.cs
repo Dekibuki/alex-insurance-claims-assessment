@@ -45,7 +45,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid claim data.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating claim.")]
-        public async Task<ActionResult<int>> CreateAsync(Claim claim)
+        public async Task<ActionResult<int>> CreateAsync([FromBody] Claim claim)
         {
             if (await validationService.ValidateClaim(claim))
             {
@@ -65,7 +65,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while deleting claim.")]
-        public async Task<ActionResult> DeleteAsync(int id)
+        public async Task<ActionResult> DeleteAsync([FromRoute] int id)
         {
             await claimsRepository.DeleteClaimByIdAsync(id);
             return Ok();
@@ -78,7 +78,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status400BadRequest, "Invalid id.")]
         [SwaggerResponse(StatusCodes.Status401Unauthorized, "Unauthorized access.")]
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while retrieving claim.")]
-        public async Task<ActionResult<Claim?>> GetAsync(int id)
+        public async Task<ActionResult<Claim>> GetAsync([FromRoute] int id)
         {
             Claim? claim = await claimsRepository.GetClaimByIdAsync(id);
             if (claim is null)

@@ -33,9 +33,9 @@ namespace Claims.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<string>("ClaimId")
+                    b.Property<int?>("ClaimId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("datetime2");
@@ -57,7 +57,7 @@ namespace Claims.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int>("CoverId")
+                    b.Property<int?>("CoverId")
                         .IsRequired(false)
                         .HasColumnType("int");
 
@@ -81,7 +81,7 @@ namespace Claims.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                    b.Property<int>("CoverId")
+                    b.Property<int?>("CoverId")
                         .IsRequired(false)
                         .HasColumnType("int");
 
@@ -94,7 +94,7 @@ namespace Claims.Migrations
 
                     b.Property<ClaimType>("Type")
                         .IsRequired()
-                        .HasColumnType("tinyint");
+                        .HasColumnType("int");
 
                     b.Property<decimal>("DamageCost")
                         .IsRequired()
@@ -102,7 +102,7 @@ namespace Claims.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CoverAudits");
+                    b.ToTable("Claims");
             });
 
             modelBuilder.Entity("Claims.Domain.Models.Insurance.Cover", b =>
@@ -113,10 +113,6 @@ namespace Claims.Migrations
 
                 SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
-                b.Property<int>("ClaimId")
-                    .IsRequired(false)
-                    .HasColumnType("int");
-
                 b.Property<DateTime>("StartDate")
                     .HasColumnType("datetime2");
 
@@ -125,7 +121,7 @@ namespace Claims.Migrations
 
                 b.Property<CoverType>("Type")
                     .IsRequired()
-                    .HasColumnType("tinyint");
+                    .HasColumnType("int");
 
                 b.Property<decimal>("Premium")
                     .IsRequired()
@@ -133,7 +129,7 @@ namespace Claims.Migrations
 
                 b.HasKey("Id");
 
-                b.ToTable("CoverAudits");
+                b.ToTable("Covers");
             });
 #pragma warning restore 612, 618
         }
