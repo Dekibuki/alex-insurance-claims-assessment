@@ -4,7 +4,7 @@
     {
         public int Id { get; set; }
 
-        public string? ClaimId { get; set; }
+        public int? ClaimId { get; set; }
 
         public DateTime Created { get; set; }
 

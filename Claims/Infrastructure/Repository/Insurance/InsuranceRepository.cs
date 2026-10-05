@@ -10,9 +10,9 @@ namespace Claims.Infrastructure.Repository.Insurance
     /// </summary>
     public class InsuranceRepository : IInsuranceRepository
     {
-        private readonly InsuranceContext _claimsContext;
+        private readonly DataContext.MainContext _claimsContext;
 
-        public InsuranceRepository(InsuranceContext claimsContext)
+        public InsuranceRepository(DataContext.MainContext claimsContext)
         {
             _claimsContext = claimsContext;
         }
@@ -22,7 +22,7 @@ namespace Claims.Infrastructure.Repository.Insurance
             return await _claimsContext.Claims.ToListAsync();
         }
 
-        public async Task<Claim?> GetClaimByIdAsync(string id)
+        public async Task<Claim?> GetClaimByIdAsync(int id)
         {
             return await _claimsContext.Claims
                 .Where(claim => claim.Id == id)
@@ -35,7 +35,7 @@ namespace Claims.Infrastructure.Repository.Insurance
             await _claimsContext.SaveChangesAsync();
         }
 
-        public async Task DeleteClaimByIdAsync(string id)
+        public async Task DeleteClaimByIdAsync(int id)
         {
             Claim? claim = await GetClaimByIdAsync(id);
 
@@ -51,7 +51,7 @@ namespace Claims.Infrastructure.Repository.Insurance
             return await _claimsContext.Covers.ToListAsync();
         }
 
-        public async Task<Cover?> GetCoverByIdAsync(string id)
+        public async Task<Cover?> GetCoverByIdAsync(int id)
         {
             return await _claimsContext.Covers
                 .Where(cover => cover.Id == id)
@@ -64,7 +64,7 @@ namespace Claims.Infrastructure.Repository.Insurance
             await _claimsContext.SaveChangesAsync();
         }
 
-        public async Task DeleteCoverByIdAsync(string id)
+        public async Task DeleteCoverByIdAsync(int id)
         {
             Cover? cover = await GetCoverByIdAsync(id);
 

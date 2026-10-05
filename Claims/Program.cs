@@ -10,70 +10,67 @@ using System.Text.Json.Serialization;
 using Testcontainers.MongoDb;
 using Testcontainers.MsSql;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Start Testcontainers for SQL Server and MongoDB
-var sqlContainer = (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
-        ? new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-        : new()
-
-    ).Build();
-
-var mongoContainer = new MongoDbBuilder()
-    .WithImage("mongo:latest")
-    .Build();
-
-await sqlContainer.StartAsync();
-await mongoContainer.StartAsync();
-
-// Add services to the container.
-builder.Services
-    .AddControllers()
-    .AddJsonOptions(x =>
+public partial class Program 
+{
+    public static async Task Main(string[] args)
     {
-        x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+        var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AuditContext>(options =>
-    options.UseSqlServer(sqlContainer.GetConnectionString()));
+        // Start Testcontainers for SQL Server and MongoDB
+        var sqlContainer = (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                ? new MsSqlBuilder()
+                    .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+                : new()
 
-builder.Services.AddDbContext<InsuranceContext>(options =>
-{
-    var client = new MongoClient(mongoContainer.GetConnectionString());
-    var database = client.GetDatabase(builder.Configuration["MongoDb:DatabaseName"]); // Use a default/test database name
-    options.UseMongoDB(database.Client, database.DatabaseNamespace.DatabaseName);
-});
+            ).Build();
 
-builder.Services.AddSingleton<IInsuranceRepository, InsuranceRepository>();
-builder.Services.AddSingleton<IAuditRepository, AuditRepository>();
-builder.Services.AddSingleton<IAuditService, AuditService>();
+        var mongoContainer = new MongoDbBuilder()
+            .WithImage("mongo:latest")
+            .Build();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+        await sqlContainer.StartAsync();
+        await mongoContainer.StartAsync();
 
-var app = builder.Build();
+        // Add services to the container.
+        builder.Services
+            .AddControllers()
+            .AddJsonOptions(x =>
+            {
+                x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+        builder.Services.AddDbContext<MainContext>(options =>
+            options.UseSqlServer(sqlContainer.GetConnectionString()));
+
+        builder.Services.AddSingleton<IInsuranceRepository, InsuranceRepository>();
+        builder.Services.AddSingleton<IAuditRepository, AuditRepository>();
+        builder.Services.AddSingleton<IAuditService, AuditService>();
+
+        // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+
+        var app = builder.Build();
+
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseHttpsRedirection();
+
+        app.UseAuthorization();
+
+        app.MapControllers();
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<MainContext>();
+            context.Database.Migrate();
+        }
+
+        app.Run();
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-using (var scope = app.Services.CreateScope())
-{
-    var context = scope.ServiceProvider.GetRequiredService<AuditContext>();
-    context.Database.Migrate();
-}
-
-app.Run();
-
-public partial class Program { }

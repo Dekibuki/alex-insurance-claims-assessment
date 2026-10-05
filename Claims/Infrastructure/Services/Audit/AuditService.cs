@@ -16,7 +16,7 @@ namespace Claims.Infrastructure.Services.Audit
             this.auditRepository = auditRepository;
         }
 
-        public async Task AuditClaim(string id, string httpRequestType)
+        public async Task AuditClaim(int id, string httpRequestType)
         {
             ClaimAudit claimAudit = new ClaimAudit()
             {
@@ -28,7 +28,7 @@ namespace Claims.Infrastructure.Services.Audit
             await auditRepository.AddAuditClaimAsync(claimAudit);
         }
         
-        public async Task AuditCover(string id, string httpRequestType)
+        public async Task AuditCover(int id, string httpRequestType)
         {
             CoverAudit coverAudit = new CoverAudit()
             {

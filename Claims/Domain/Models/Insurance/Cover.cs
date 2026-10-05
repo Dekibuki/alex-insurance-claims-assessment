@@ -1,24 +1,18 @@
 using MongoDB.Bson.Serialization.Attributes;
 using Claims.Domain.Enums;
 
-namespace Claims.Domain.Models.Insurance;
-
-public class Cover
+namespace Claims.Domain.Models.Insurance
 {
-    [BsonId]
-    public string Id { get; set; }
+    public class Cover
+    {
+        public int Id { get; set; }
 
-    [BsonElement("startDate")]
-    [BsonDateTimeOptions(DateOnly = true)]
-    public DateTime StartDate { get; set; }
+        public DateTime StartDate { get; set; }
 
-    [BsonElement("endDate")]
-    [BsonDateTimeOptions(DateOnly = true)]
-    public DateTime EndDate { get; set; }
+        public DateTime EndDate { get; set; }
 
-    [BsonElement("claimType")]
-    public CoverType Type { get; set; }
+        public CoverType Type { get; set; }
 
-    [BsonElement("premium")]
-    public decimal Premium { get; set; }
+        public decimal Premium { get; set; }
+    }
 }

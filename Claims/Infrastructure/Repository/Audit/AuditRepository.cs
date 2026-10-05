@@ -9,9 +9,9 @@ namespace Claims.Infrastructure.Repository.Audit
     /// </summary>
     public class AuditRepository : IAuditRepository
     {
-        private readonly AuditContext _auditContext;
+        private readonly MainContext _auditContext;
 
-        public AuditRepository(AuditContext auditContext)
+        public AuditRepository(MainContext auditContext)
         {
             _auditContext = auditContext;
         }

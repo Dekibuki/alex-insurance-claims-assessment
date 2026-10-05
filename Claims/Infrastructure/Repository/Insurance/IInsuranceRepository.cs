@@ -11,18 +11,18 @@ namespace Claims.Infrastructure.Repository.Insurance
     {
         public Task<List<Claim>> GetAllClaimsAsync();
 
-        public Task<Claim?> GetClaimByIdAsync(string id);
+        public Task<Claim?> GetClaimByIdAsync(int id);
 
         public Task AddClaimAsync(Claim item);
 
-        public Task DeleteClaimByIdAsync(string id);
+        public Task DeleteClaimByIdAsync(int id);
 
         public Task<List<Cover>> GetAllCoversAsync();
 
-        public Task<Cover?> GetCoverByIdAsync(string id);
+        public Task<Cover?> GetCoverByIdAsync(int id);
 
         public Task AddCoverAsync(Cover item);
 
-        public Task DeleteCoverByIdAsync(string id);
+        public Task DeleteCoverByIdAsync(int id);
     }
 }
