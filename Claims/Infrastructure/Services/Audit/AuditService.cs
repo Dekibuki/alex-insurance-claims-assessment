@@ -52,6 +52,13 @@ namespace Claims.Infrastructure.Services.Audit
             await auditRepository.AddAuditCoverAsync(coverAudit);
         }
 
+        /// <summary>
+        /// Computes the premium for a given cover type and insurance period.
+        /// </summary>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <param name="coverType"></param>
+        /// <returns></returns>
         public decimal ComputePremium(DateTime startDate, DateTime endDate, CoverType coverType)
         {
             decimal multiplier = DefaultMultiplier;

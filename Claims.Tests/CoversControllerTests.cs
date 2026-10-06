@@ -11,6 +11,9 @@ using Xunit;
 
 namespace Claims.Tests
 {
+    /// <summary>
+    /// Cover controller tests for the Claims API involving managing covers and calculating premium.
+    /// </summary>
     public class CoversControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly WebApplicationFactory<Program> application;

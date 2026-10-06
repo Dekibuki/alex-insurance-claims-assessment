@@ -11,6 +11,9 @@ using Claims.Infrastructure.DataContext;
 
 namespace Claims.Tests
 {
+    /// <summary>
+    /// Cover validation tests for the validation service in the Claims API involving managing claims and covers.
+    /// </summary>
     public class ValidationTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly DateTime StartCoverDateTime = DateTime.Parse("2026-11-05T18:27:56.113Z");
