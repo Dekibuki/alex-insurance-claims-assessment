@@ -7,8 +7,8 @@ namespace Claims.Infrastructure.Services.Validation
     /// </summary>
     public interface IValidationService
     {
-        public Task<bool> ValidateClaim(Claim claim);
+        public Task ValidateClaim(Claim claim);
 
-        public bool ValidateCover(Cover cover);
+        public void ValidateCover(Cover cover);
     }
 }

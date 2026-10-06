@@ -1,4 +1,5 @@
 using Claims.Domain.Enums;
+using Claims.Domain.Exceptions;
 using Claims.Domain.Models.Audit;
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
@@ -89,8 +90,10 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating cover.")]
         public async Task<ActionResult<int>> CreateAsync([FromBody] Cover cover)
         {
-            if (validationService.ValidateCover(cover))
+            try
             {
+                validationService.ValidateCover(cover);
+
                 cover.Premium = auditService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
 
                 await insuranceRepository.AddCoverAsync(cover);
@@ -104,9 +107,15 @@ namespace Claims.Controllers
 
                 return Ok(cover.Id);
             }
-            else
+            catch (BadValidationException ex)
             {
-                return BadRequest("Invalid cover data.");
+                _logger.LogWarning(ex, ex.Message);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred while creating a cover.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
             }
         }
 

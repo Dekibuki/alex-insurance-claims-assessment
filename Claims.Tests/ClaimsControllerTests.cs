@@ -12,15 +12,13 @@ using Xunit;
 
 namespace Claims.Tests
 {
-    public class ClaimsControllerTests
+    public class ClaimsControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly WebApplicationFactory<Program> application;
 
-        public ClaimsControllerTests()
+        public ClaimsControllerTests(WebApplicationFactory<Program> application)
         {
-            this.application = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(_ =>
-                { });
+            this.application = application;
         }
 
         [Fact]
@@ -44,6 +42,7 @@ namespace Claims.Tests
                 claimToInsert,
                 TestContext.Current.CancellationToken);
 
+            response.EnsureSuccessStatusCode();
 
             string json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -51,7 +50,6 @@ namespace Claims.Tests
 
             int? claimId = JsonSerializer.Deserialize<int>(json, options);
 
-            response.EnsureSuccessStatusCode();
             Assert.NotNull(claimId);
         }
 
@@ -64,13 +62,14 @@ namespace Claims.Tests
 
             HttpResponseMessage response = await client.GetAsync("api/claims", TestContext.Current.CancellationToken);
 
+            response.EnsureSuccessStatusCode();
+
             string json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             options.Converters.Add(new JsonStringEnumConverter());
 
             List<Claim>? claims = JsonSerializer.Deserialize<List<Claim>>(json, options);
 
-            response.EnsureSuccessStatusCode();
             Assert.NotNull(claims);
             Assert.NotEmpty(claims);
         }
@@ -87,13 +86,14 @@ namespace Claims.Tests
 
             HttpResponseMessage response = await client.GetAsync($"api/claims/{claimId}", TestContext.Current.CancellationToken);
 
+            response.EnsureSuccessStatusCode();
+
             string json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
             JsonSerializerOptions options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             options.Converters.Add(new JsonStringEnumConverter());
 
             Claim? claim = JsonSerializer.Deserialize<Claim>(json, options);
 
-            response.EnsureSuccessStatusCode();
             Assert.NotNull(claim);
             Assert.Equal(claimId, claim.Id);
         }

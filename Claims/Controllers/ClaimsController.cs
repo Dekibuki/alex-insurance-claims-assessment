@@ -1,3 +1,4 @@
+using Claims.Domain.Exceptions;
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
 using Claims.Infrastructure.Services.Validation;
@@ -47,14 +48,22 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while creating claim.")]
         public async Task<ActionResult<int>> CreateAsync([FromBody] Claim claim)
         {
-            if (await validationService.ValidateClaim(claim))
+            try
             {
+                await validationService.ValidateClaim(claim);
+
                 await claimsRepository.AddClaimAsync(claim);
                 return Ok(claim.Id);
             }
-            else
+            catch (BadValidationException ex)
             {
-                return BadRequest("Invalid claim data.");
+                _logger.LogWarning(ex, ex.Message);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unexpected error occurred while creating a cover.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
             }
         }
 

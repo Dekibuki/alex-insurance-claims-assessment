@@ -1,5 +1,6 @@
-﻿using Claims.Infrastructure.Repository.Insurance;
+﻿using Claims.Domain.Exceptions;
 using Claims.Domain.Models.Insurance;
+using Claims.Infrastructure.Repository.Insurance;
 
 namespace Claims.Infrastructure.Services.Validation
 {
@@ -17,11 +18,11 @@ namespace Claims.Infrastructure.Services.Validation
             this.insuranceRepository = insuranceRepository;
         }
 
-        public async Task<bool> ValidateClaim(Claim claim)
+        public async Task ValidateClaim(Claim claim)
         {
             if (claim.DamageCost > MaxDamageCost)
             {
-                return false;
+                throw new BadValidationException($"Damage cost exceeds the maximum - {MaxDamageCost}", StatusCodes.Status400BadRequest);
             }
 
             Cover? cover = await insuranceRepository.GetCoverByIdAsync(claim.CoverId ?? 0);
@@ -29,27 +30,23 @@ namespace Claims.Infrastructure.Services.Validation
             {
                 if (claim.Created < cover.StartDate || claim.Created > cover.EndDate)
                 {
-                    return false;
+                    throw new BadValidationException($"Claim date is outside the cover period - {cover.StartDate} to {cover.EndDate}", StatusCodes.Status400BadRequest);
                 }
 
             }
-
-            return true;
         }
 
-        public bool ValidateCover(Cover cover)
+        public void ValidateCover(Cover cover)
         {
             if (cover.StartDate < DateTime.Now)
             {
-                return false;
+                throw new BadValidationException($"Cover start date is in the past - {cover.StartDate}", StatusCodes.Status400BadRequest);
             }
 
             if ((cover.EndDate - cover.StartDate).TotalDays > MaxCoverDurationDays)
             {
-                return false;
+                throw new BadValidationException($"Cover duration exceeds the maximum - {MaxCoverDurationDays} days", StatusCodes.Status400BadRequest);
             }
-
-            return true;
         }
     }
 }

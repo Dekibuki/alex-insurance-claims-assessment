@@ -11,18 +11,16 @@ using Xunit;
 
 namespace Claims.Tests
 {
-    public class CoversControllerTests
+    public class CoversControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         private readonly WebApplicationFactory<Program> application;
 
         private readonly DateTime StartCoverDateTime = DateTime.Parse("2026-11-05T18:27:56.113Z");
         private readonly DateTime EndCoverDateTime = DateTime.Parse("2026-12-05T18:27:56.113Z");
 
-        public CoversControllerTests()
+        public CoversControllerTests(WebApplicationFactory<Program> application)
         {
-            this.application = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(_ =>
-                { });
+            this.application = application;
         }
 
         [Fact]
