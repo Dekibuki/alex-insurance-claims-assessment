@@ -3,6 +3,7 @@ using Claims.Infrastructure.DataContext;
 using Claims.Infrastructure.Repository.Audit;
 using Claims.Infrastructure.Repository.Insurance;
 using Claims.Infrastructure.Services.Audit;
+using Claims.Infrastructure.Services.Calculations;
 using Claims.Infrastructure.Services.Validation;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
@@ -47,6 +48,7 @@ public partial class Program
         builder.Services.AddScoped<IAuditRepository, AuditRepository>();
         builder.Services.AddScoped<IAuditService, AuditService>();
         builder.Services.AddScoped<IValidationService, ValidationService>();
+        builder.Services.AddScoped<ICalculationsService, CalculationsService>();
 
         builder.Services.AddSingleton<AuditQueue>();
         builder.Services.AddHostedService<AuditWorker>();

@@ -4,6 +4,7 @@ using Claims.Domain.Models.Audit;
 using Claims.Domain.Models.Insurance;
 using Claims.Infrastructure.Repository.Insurance;
 using Claims.Infrastructure.Services.Audit;
+using Claims.Infrastructure.Services.Calculations;
 using Claims.Infrastructure.Services.Validation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,21 +22,22 @@ namespace Claims.Controllers
     {
         private readonly IInsuranceRepository insuranceRepository;
         private readonly ILogger<CoversController> _logger;
-        private readonly IAuditService auditService;
         private readonly IValidationService validationService;
+        private readonly ICalculationsService calculationsService;
 
         private readonly AuditQueue auditQueue;
 
         public CoversController(
             IInsuranceRepository claimsRepository,
-            IAuditService auditer, ILogger<CoversController> logger,
+            ILogger<CoversController> logger,
             IValidationService validationService,
+            ICalculationsService calculationsService,
             AuditQueue auditQueue)
         {
             this.insuranceRepository = claimsRepository;
             _logger = logger;
-            this.auditService = auditer;
             this.validationService = validationService;
+            this.calculationsService = calculationsService;
             this.auditQueue = auditQueue;
         }
 
@@ -48,7 +50,7 @@ namespace Claims.Controllers
         [SwaggerResponse(StatusCodes.Status500InternalServerError, "Error while computing premium.")]
         public async Task<ActionResult<decimal>> ComputePremiumAsync([FromBody] ComputePremiumDto computePremiumDto)
         {
-            return Ok(auditService.ComputePremium(computePremiumDto.StartDate, computePremiumDto.EndDate, computePremiumDto.Type));
+            return Ok(calculationsService.ComputePremium(computePremiumDto.StartDate, computePremiumDto.EndDate, computePremiumDto.Type));
         }
 
         // GET: api/covers
@@ -94,7 +96,7 @@ namespace Claims.Controllers
             {
                 validationService.ValidateCover(cover);
 
-                cover.Premium = auditService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
+                cover.Premium = calculationsService.ComputePremium(cover.StartDate, cover.EndDate, cover.Type);
 
                 await insuranceRepository.AddCoverAsync(cover);
                 await auditQueue.EnqueueAsync(new AuditMessage
